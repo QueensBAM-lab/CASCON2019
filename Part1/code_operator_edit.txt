@@ -1,0 +1,116 @@
+#
+# YOU MUST EDIT THE SCHEMA and add all attributes that you are returning as output.
+#
+# Preinstalled Python packages can be viewed from the Settings pane.
+# In the Settings pane you can also install additional Python packages.
+
+import sys
+import logging
+import numpy as np
+from scipy.stats import skew, kurtosis
+
+counter = 0 
+#global Values
+Values = [] 
+
+def Average(tuples):
+    TupleArray = np.asarray(tuples)
+    for col in range(TupleArray.shape[1]):
+        minV = np.amin(TupleArray[:,col])
+        maxV = np.amax(TupleArray[:,col])
+        TupleArray[:,col] = (TupleArray[:,col] - minV)/(maxV - minV)
+    XVal = TupleArray[:,0]
+    YVal = TupleArray[:,1]
+    ZVal = TupleArray[:,2]
+    Magnitude = np.sqrt(np.square(XVal) + np.square(YVal)+\
+			np.square(ZVal))
+    TA = np.arcsin(np.divide(YVal,Magnitude))
+
+    output = {}
+    output['AvgX'] = np.mean(XVal)
+    output['AvgY'] = np.mean(YVal)
+    output['AvgZ'] = np.mean(ZVal)
+    output['MedianX'] = np.median(XVal)
+    output['MedianY'] = np.median(YVal)
+    output['MedianZ'] = np.median(ZVal)    
+    
+    output['StdX'] = np.std(XVal)
+    output['StdY'] = np.std(YVal)
+    output['StdZ'] = np.std(ZVal)
+
+    output['KurtosisX'] = kurtosis(XVal,fisher = False)
+    output['KurtosisY'] = kurtosis(YVal,fisher = False)
+    output['KurtosisZ'] = kurtosis(ZVal,fisher = False)
+
+    output['SkewX'] = skew(XVal)
+    output['SkewY'] = skew(YVal)
+    output['SkewZ'] = skew(ZVal)
+
+    MinX = np.amin(XVal)
+    output['MinX'] = MinX
+    MinY = np.amin(YVal)
+    output['MinY'] = MinY
+    MinZ = np.amin(ZVal)
+    output['MinZ'] = MinZ
+
+    MaxX = np.amax(XVal)
+    output['MaxX'] = MaxX
+    MaxY = np.amax(YVal)
+    output['MaxY'] = MaxY
+    MaxZ = np.amax(ZVal)
+    output['MaxZ'] = MaxZ
+
+    output['Slope'] = np.sqrt((MaxX - MinX)**2 + (MaxY - MinY)**2 + (MaxZ - MinZ)**2) 
+    output['MeanTA'] = np.mean(TA)
+    output['StdTA'] = np.std(TA)
+    output['SkewTA'] = skew(TA)
+    output['KurtosisTA'] = kurtosis(TA)
+    output['MeanMag'] = np.mean(Magnitude)
+    output['StdMag'] = np.std(Magnitude)
+    MinMag = np.amin(Magnitude)
+    output['MinMag'] = MinMag
+    MaxMag = np.amax(Magnitude)
+    output['MaxMag'] = MaxMag
+    output['DiffMinMaxMag'] = MaxMag - MinMag
+	                        
+    return output
+
+
+# Use this logger for tracing or debugging your code:
+logger = logging.getLogger(__name__)
+# Example:
+#     logger.info('Got to step 2...')
+
+# init() function will be called once on flow initialization
+# @state a Python dictionary object for keeping state. The state object is passed to the process function
+def init(state):
+    # do something once on flow initialization and save in the state object
+    pass
+
+
+# process() function will be invoked on every event tuple
+# @event a Python dictionary object representing the input event tuple as defined by the input schema
+# @state a Python dictionary object for keeping state over subsequent function calls
+# return must be a Python dictionary object. It will be the output of this operator.
+#        Returning None results in not submitting an output tuple for this invocation.
+# You must declare all output attributes in the Edit Schema window.
+def process(event, state):
+    # Enrich the event, such as by:
+    # event['wordCount'] = len(event['phrase'].split())
+    global counter
+    global Values
+    counter += 1
+    event['counter'] = counter    
+    
+    if counter < 10:
+        Values.append([event['d_acceleration_x'],event['d_acceleration_y'],
+            event['d_acceleration_z']])
+        return None
+    else :
+        counter = 0
+        outputP = Average(Values)  
+        Values = []
+        return outputP
+    
+    
+       
